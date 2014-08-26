@@ -2,7 +2,7 @@ require 'sinatra'
 require 'pg'
 require 'pry'
 
-set :port, 5001
+set :port, 5002
 
 def db_connection
   begin
@@ -80,6 +80,26 @@ def something(movie_id)
   lots_of_stuff.to_a
 end
 
+def find_movie_id_by_title(title)
+  sql = %{
+    SELECT movies.id FROM movies WHERE movies.title = $1
+  }
+  movie_id = db_connection do |db|
+    db.exec_params(sql,[title])
+  end
+  movie_id.to_a
+end
+helpers do
+  def find_actor_id_by_name(name)
+    sql = %{
+      SELECT id FROM actors WHERE actors.name = $1
+    }
+    actor_id = db_connection do |db|
+      db.exec_params(sql,[name])
+    end
+    actor_id.to_a.first
+  end
+end
 ############################################################
 ####                    Routes                          ####
 ############################################################
@@ -95,7 +115,9 @@ end
 get '/actors/:id' do
   @actor = find_actor_by_id(params[:id])
   @roles = movies_starred_by_actor_id(params[:id])
-  @movie_id = params[:id]
+  @title = @roles[0]["title"]
+
+  @movie_id = find_movie_id_by_title(@title)
   erb :'actors/roles'
 end
 
